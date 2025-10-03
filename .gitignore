@@ -1,0 +1,33 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# VS Code settings
+.vscode/
+
+# Model weights and datasets
+*.pt
+*.pth
+weights/
+models/
+
+# Logs and outputs
+logs/
+*.log
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Build artifacts
+build/
+dist/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Others
+.env
