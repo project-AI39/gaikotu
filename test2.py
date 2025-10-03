@@ -130,6 +130,9 @@ def overlay_limb(base, overlay, pt1, pt2):
     angle = math.degrees(math.atan2(p2[1] - p1[1], p2[0] - p1[0])) - 90
     rotated = rotate_bound(resized, angle)
 
+    # YOLO座標系とアセットの基準が上下反転しているため、縦方向に反転して整列
+    rotated = cv2.flip(rotated, 0)
+
     center = (p1 + p2) / 2.0
     overlay_centered(base, rotated, center)
 
@@ -168,6 +171,8 @@ def overlay_torso(base, overlay, points, confs, threshold):
     )
     rotated = rotate_bound(resized, angle)
 
+    rotated = cv2.flip(rotated, 0)
+
     center = (left_shoulder + right_shoulder + left_hip + right_hip) / 4.0
     overlay_centered(base, rotated, center)
 
@@ -201,6 +206,8 @@ def overlay_face(base, overlay, points, confs, threshold):
     )
 
     rotated = rotate_bound(resized, angle)
+
+    rotated = cv2.flip(rotated, 0)
     overlay_centered(base, rotated, center)
 
 
