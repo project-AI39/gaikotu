@@ -7,7 +7,10 @@ import numpy as np
 from ultralytics import YOLO
 
 # YOLOポーズモデルをロード
-model = YOLO("yolo11m-pose.pt")
+model = YOLO("yolo11n-pose.pt")
+
+# カメラ画像を左右反転するかどうか (鏡のようにする場合はTrue)
+FLIP_HORIZONTAL = True
 
 # COCOキーポイントの接続定義 (骨格を描画するための線)
 POSE_PAIRS = [
@@ -293,6 +296,7 @@ def main():
 
     print("Webカメラを開始しました。'q'キーで終了します。")
     print("人がいない状態が3秒続くと、その時点のフレームを背景として保存します。")
+    print("'w'キーで手動で背景を更新できます。")
 
     background = None
     last_person_detected_time = time.time()
@@ -303,6 +307,10 @@ def main():
         ret, frame = cap.read()
         if not ret:
             break
+
+        # カメラ画像を左右反転(鏡モード)
+        if FLIP_HORIZONTAL:
+            frame = cv2.flip(frame, 1)
 
         current_time = time.time()
 
@@ -364,9 +372,15 @@ def main():
         # ウィンドウに表示
         cv2.imshow("Pose Detection", display_frame)
 
-        # 'q'キーで終了
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+        # キー入力処理
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
+            # 'q'キーで終了
             break
+        elif key == ord("w"):
+            # 'w'キーで手動背景更新
+            background = frame.copy()
+            print("背景を手動更新しました")
 
     # クリーンアップ
     cap.release()
