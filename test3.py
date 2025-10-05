@@ -12,6 +12,10 @@ model = YOLO("yolo11n-pose.pt")
 # カメラ画像を左右反転するかどうか (鏡のようにする場合はTrue)
 FLIP_HORIZONTAL = True
 
+# リアルタイムカメラ映像表示設定
+REALTIME_INTERVAL = 30.0  # N秒に一度リアルタイム表示 (秒)
+REALTIME_DURATION = 5.0   # M秒間リアルタイム表示を継続 (秒)
+
 # COCOキーポイントの接続定義 (骨格を描画するための線)
 POSE_PAIRS = [
     [0, 1],
@@ -293,11 +297,16 @@ def main():
     print("Webカメラを開始しました。'q'キーで終了します。")
     print("人がいない状態が3秒続くと、その時点のフレームを背景として保存します。")
     print("'w'キーで手動で背景を更新できます。")
+    print(f"{REALTIME_INTERVAL}秒ごとに{REALTIME_DURATION}秒間、リアルタイム映像を表示します。")
 
     background = None
     last_person_detected_time = time.time()
     no_person_duration = 0.0
     BACKGROUND_CAPTURE_DELAY = 3.0  # 人がいなくなってから背景を取得するまでの時間(秒)
+    
+    # リアルタイム表示モード管理
+    last_realtime_start = time.time()
+    is_realtime_mode = False
 
     while True:
         ret, frame = cap.read()
@@ -310,6 +319,20 @@ def main():
 
         current_time = time.time()
 
+        # リアルタイム表示モードの制御
+        time_since_last_realtime = current_time - last_realtime_start
+        if time_since_last_realtime >= REALTIME_INTERVAL:
+            # リアルタイム表示開始
+            if not is_realtime_mode:
+                is_realtime_mode = True
+                print(f"リアルタイム表示モード開始 ({REALTIME_DURATION}秒間)")
+            
+            # リアルタイム表示期間が終了したらリセット
+            if time_since_last_realtime >= REALTIME_INTERVAL + REALTIME_DURATION:
+                is_realtime_mode = False
+                last_realtime_start = current_time
+                print("リアルタイム表示モード終了")
+        
         # YOLOでポーズ推定
         results = model(frame, conf=0.5)
 
@@ -333,8 +356,11 @@ def main():
                     print(f"背景を更新しました (人がいない状態が{no_person_duration:.1f}秒継続)")
 
         # 表示用の画像を準備
-        if background is not None:
-            # 背景画像を使用
+        if is_realtime_mode:
+            # リアルタイム表示モード: 現在のカメラ映像を使用
+            display_frame = frame.copy()
+        elif background is not None:
+            # 通常モード: 背景画像を使用
             display_frame = background.copy()
         else:
             # 背景がまだない場合は現在のフレームを使用
@@ -348,12 +374,19 @@ def main():
 
         # ステータス表示
         status_text = ""
-        if background is None:
+        if is_realtime_mode:
+            remaining_time = REALTIME_DURATION - (time_since_last_realtime - REALTIME_INTERVAL)
+            status_text = f"リアルタイム表示中 (残り{remaining_time:.1f}秒)"
+            status_color = (0, 165, 255)  # オレンジ色
+        elif background is None:
             status_text = f"背景待機中... ({no_person_duration:.1f}秒 / {BACKGROUND_CAPTURE_DELAY}秒)"
+            status_color = (0, 255, 255)  # 黄色
         elif person_detected:
             status_text = "人を検出中"
+            status_color = (0, 255, 0)  # 緑色
         else:
             status_text = f"背景表示中 (人なし: {no_person_duration:.1f}秒)"
+            status_color = (0, 255, 0)  # 緑色
 
         cv2.putText(
             display_frame,
@@ -361,7 +394,7 @@ def main():
             (10, 30),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.7,
-            (0, 255, 0),
+            status_color,
             2,
         )
 
